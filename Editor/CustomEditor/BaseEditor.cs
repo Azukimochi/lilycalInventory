@@ -282,6 +282,10 @@ namespace jp.lilxyzw.lilycalinventory
         // オブジェクトの参照がアバター外のオブジェクトになっている場合、アバター内に修正
         [InitializeOnLoadMethod] private static void Initialize() => ObjectChangeEvents.changesPublished += (ref ObjectChangeEventStream stream) =>
         {
+            // Playモード中(および遷移中)はNDMF等がシーン上のアバターを直接書き換えるため、
+            // ここで参照を修正するとシーンのデータを破壊しうる。編集モードでのみ動作させる。
+            if(EditorApplication.isPlayingOrWillChangePlaymode) return;
+
             var components = new HashSet<AvatarTagComponent>();
             for(int i = 0; i < stream.length; i++)
             {
@@ -325,7 +329,10 @@ namespace jp.lilxyzw.lilycalinventory
                 {
                     var lastPath = gameObject.GetPathInAvatar();
                     if(string.IsNullOrEmpty(lastPath)) continue;
-                    iter.objectReferenceValue = root.transform.Find(lastPath).gameObject;
+                    var t = root.transform.Find(lastPath);
+                    // 同じパスがアバター内に存在しない場合は参照を書き換えない
+                    if(!t) continue;
+                    iter.objectReferenceValue = t.gameObject;
                 }
                 else if(iter.objectReferenceValue is Component c && c.gameObject.GetAvatarRoot() != root)
                 {
