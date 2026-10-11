@@ -136,8 +136,16 @@ namespace jp.lilxyzw.lilycalinventory
 
             // 一時的にアクティブにして子のコンポーネントが探索されるようにする
             foreach(var a in actives) a.Item1.SetActive(true);
-            components = ctx.AvatarRootObject.GetActiveComponentsInChildren<AvatarTagComponent>(true).Where(c => c is not MenuBaseComponent mbc || !mbc.UnenabledParent()).ToArray();
-            foreach(var a in actives) a.Item1.SetActive(a.Item2);
+            try
+            {
+                components = ctx.AvatarRootObject.GetActiveComponentsInChildren<AvatarTagComponent>(true).Where(c => c is not MenuBaseComponent mbc || !mbc.UnenabledParent()).ToArray();
+            }
+            finally
+            {
+                // 探索中に例外が発生してもアクティブ状態を必ず元に戻す
+                // 他のツールによってオブジェクトが破棄されている場合があるため生存確認を行う
+                foreach(var a in actives) if(a.Item1) a.Item1.SetActive(a.Item2);
+            }
 
             // 各コンポーネントを取得
             modifiers = components.SelectComponents<MaterialModifier>();
